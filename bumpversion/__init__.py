@@ -183,7 +183,47 @@ class Mercurial(BaseVCS):
     def tag(cls, name):
         subprocess.check_output(["hg", "tag", name])
 
-VCS = [Git, Mercurial]
+
+class Bazaar(BaseVCS):
+
+    @classmethod
+    def is_usable(cls):
+        try:
+            import breezy
+        except ImportError:
+            return False
+        else:
+            return True
+
+    @classmethod
+    def assert_nondirty(cls):
+        from breezy.workingtree import WorkingTree
+        wt = WorkingTree.open('.')
+        if wt.has_changes():
+            raise WorkingDirectoryIsDirtyException(
+                "Bazaar working directory is not clean")
+
+    @classmethod
+    def latest_tag_info(cls):
+        from breezy.workingtree import WorkingTree
+        wt = WorkingTree.open('.')
+        info = {}
+        info["dirty"] = wt.has_changes()
+        info["last_revision"] = wt.last_revision()
+        return info
+
+    @classmethod
+    def add_path(cls, path):
+        pass
+
+    @classmethod
+    def tag(cls, name):
+        from breezy.workingtree import WorkingTree
+        wt = WorkingTree.open('.')
+        wt.branch.tags.set_tag(name, wt.last_revision())
+
+
+VCS = [Git, Mercurial, Bazaar]
 
 
 def prefixed_environ():
